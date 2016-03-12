@@ -1,0 +1,718 @@
+<html>
+  <head>
+    <title>Project 1 - Mobile Banking</title>
+    
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+    
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <script src="//d3js.org/topojson.v1.min.js"></script>
+    <script src="http://d3js.org/d3.geo.projection.v0.min.js" charset="utf-8"></script>
+
+    <style>
+      body { font-family: "Open Sans"; } 
+      
+      svg.map {
+       border: 1px solid #eee;  
+      }
+      .axis {
+        font-size: .8em;
+      }
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: #ccc;
+        stroke-width: .5;
+        shape-rendering: crispEdges;
+      }
+
+      
+      .x.axis .tick text {
+        width: 5px;
+      }
+
+      /*default styles/color */
+      .line {
+        fill: none;
+        stroke: steelblue;
+        stroke-width: 6px;
+        stroke-opacity: .3;
+      }
+
+      .bar {
+        fill: #6A51A3;
+      }
+
+      rect.bar-usage {
+        fill: #09B23C;
+      }
+
+      path.users-area { 
+        stroke: #09B23C;
+        fill: #09B23C;
+        opacity: 0.1;
+      }
+
+      path.users-line {
+        stroke-width: 6px;
+        stroke: #09B23C;
+        fill: none;
+      }
+
+      .callout.orange line {
+        stroke: #FFA119;
+        stroke-width: .5;
+        shape-rendering: crispEdges;
+      }
+
+      .callout.orange rect {
+        fill: #FFA119;
+      }
+
+      .callout.orange text {
+        font-size: 1.2em;
+        stroke: none;
+        fill: #fff;
+      }
+
+      .callout.purple line {
+        stroke: #4a1486;
+        stroke-width: .5;
+        shape-rendering: crispEdges;
+      }
+
+      .callout.purple rect {
+        fill: #4a1486;
+        opacity: .4;
+      }
+
+      .callout.purple circle {
+        fill: #4a1486;
+      }
+
+      .callout.purple text {
+        font-size: 1.2em;
+        stroke: none;
+        fill: #fff;
+      }
+
+      .key path {
+        display: none;
+      }
+
+      .key line {
+        stroke: #ccc;
+        shape-rendering: crispEdges;
+      }
+        div {
+            margin-bottom: 50px;
+        }
+
+
+
+
+    </style>
+  </head>
+  <body>
+    <!-- got this smalldot definition from https://iros.github.io/patternfills/sample_d3.html -->
+    <svg height="5" width="5" xmlns="http://www.w3.org/2000/svg" version="1.1"> <defs> <pattern id="smalldot" patternUnits="userSpaceOnUse" width="5" height="5"> <image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc1JyBoZWlnaHQ9JzUnPgo8cmVjdCB3aWR0aD0nNScgaGVpZ2h0PSc1JyBmaWxsPScjZmZmJy8+CjxyZWN0IHdpZHRoPScxJyBoZWlnaHQ9JzEnIGZpbGw9JyNjY2MnLz4KPC9zdmc+" x="0" y="0" width="5" height="5"> </image> </pattern> </defs> </svg> 
+
+    <div class="jumbotron">
+    <div class="container">
+        <h1 class="col-lg-10">
+            Mobile Kenya 
+        </h1>
+        <p class="col-lg-8"> 
+            The growth of mobile phone usage and mobile banking in Kenya compared to other countries in the world, and in comparison to <i>older</i> technologies within Kenya. 
+        </p>
+        <p></p>
+        
+        
+    </div>  
+       
+        
+    </div>
+
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-7">
+          <!-- timeline -->
+          <div id="timeline-kenya">
+            <h3>Development indicators and technologies in Kenya</h3>
+              <p>Mobile usage has skyrocketed and even surpassed other basic necessities, such as access to an improved water source and sanitation.</p>
+  
+            <script>
+              // this was pulled from, it is used in the second visualization
+              // https://bl.ocks.org/mbostock/7555321
+              function wrap(text, width) {
+                text.each(function() {
+                  var text = d3.select(this),
+                      words = text.text().split(/\s+/).reverse(),
+                      word,
+                      line = [],
+                      lineNumber = 0,
+                      lineHeight = 1.1, // ems
+                      y = text.attr("y"),
+                      dy = parseFloat(text.attr("dy")),
+                      tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+                  while (word = words.pop()) {
+                    line.push(word);
+                    tspan.text(line.join(" "));
+                    if (tspan.node().getComputedTextLength() > width) {
+                      line.pop();
+                      tspan.text(line.join(" "));
+                      line = [word];
+                      tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                    }
+                  }
+                });
+              }
+
+              function draw_timeline () {
+                //first chart - timeline Kenya
+                var margin = {top: 30, right: 80, bottom: 70, left: 40},
+                    width = 653 - margin.left - margin.right,
+                    height = 400 - margin.top - margin.bottom;
+
+                var parseYear = d3.time.format("%Y").parse;
+
+                var x = d3.time.scale().range([0, width]);
+                var y = d3.scale.linear().range([height, 0]);
+
+                var color = d3.scale.category10();
+
+                var xAxis = d3.svg.axis().scale(x)
+                    .orient("bottom").ticks(5);
+
+                var yAxis = d3.svg.axis().scale(y)
+                    .orient("left").ticks(5).tickFormat(function(d) { return d + "%"; });
+
+                var line = d3.svg.line()
+                  .x(function(d) { return x(d.year); })
+                  .y(function(d) { return y(d.percentage); });
+
+                var svg = d3.select("#timeline-kenya")
+                    .append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                        .attr("transform", 
+                              "translate(" + margin.left + "," + margin.top + ")");
+
+                // Get the data
+                d3.csv("data/kenya-key-indicators.csv", function(error, data) {
+                  
+                  color.domain(d3.keys(data[0]).filter(function(key) { 
+                    if (key !== "Year") {
+                      return key; 
+                    }
+                  }));
+
+                  //convert to year format
+                  data.forEach(function(d) {
+                    d.Year = parseYear(d.Year);
+                  });
+
+                  // Scale the range of the data
+                  x.domain(d3.extent(data, function(d) { return d.Year; }));
+                  y.domain([0, 100]); //basic percentage or per 100 people
+
+                  svg.append("g")            // Add the X Axis
+                      .attr("class", "x axis")
+                      .attr("transform", "translate(0," + height + ")")
+                      .call(xAxis);
+                
+                  svg.append("g")
+                      .attr("class", "y axis")
+                      .call(yAxis);
+
+                  var indicators = color.domain().map(function(name) {
+                    return {
+                      name: name,
+                      values: data.map(function(d) {
+                        return {year: d.Year, percentage: +d[name]};
+                      })
+                    };
+                  });
+
+                  var indicator = svg.selectAll(".indicator")
+                      .data(indicators)
+                    .enter().append("g")
+                      .attr("class", "indicator");
+
+                  indicator.append("path")
+                      .attr("class", "line ken")
+                      .attr("d", function(d) { return line(d.values); })
+                      .style("stroke", function(d) { return color(d.name); });
+
+                  indicator.append("text")
+                      .datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
+                      .attr("transform", function(d) { return "translate(" + x(d.value.year) + "," + y(d.value.percentage) + ")"; })
+                      .attr("x", 3)
+                      .attr("dy", ".35em")
+                      .text(function(d) { return d.name; });
+
+                  //highlight where mobile surpasses sanitation access
+                  //highlight where mobile surpasses water access
+                  var callout = svg.append("g")
+                    .attr("class", "callout purple");
+
+                  callout.append("circle")
+                    .attr("cx", (x(parseYear("2007")) - 2.5) )
+                    .attr("cy", (y(30.06283272) + 2.5))
+                    .attr("r", 5);
+                  
+                  callout.append("circle")
+                    .attr("cx", (x(parseYear("2010")) - 2.5) )
+                    .attr("cy", (y(61.03491308) + 2.5)) 
+                    .attr("r", 5);
+
+                });
+
+              }
+
+              draw_timeline();
+
+            </script>
+              <p>Source: <a href="http://databank.worldbank.org/">The World Bank</a></p>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <!-- timeline -->
+          <div id="mobile-kenya">
+            <h3>How do Kenyans use mobile phones?</h3>
+              <p>"Send or Receive payments" is the second most frequent use of mobile technology.</p>
+            <script>
+
+              function draw_bar() {
+              
+                var margin = {top: 30, right: 0, bottom: 70, left: 40},
+                    width = 458 - margin.left - margin.right,
+                    height = 400 - margin.top - margin.bottom;
+
+                var x = d3.scale.ordinal()
+                    .rangeRoundBands([0, width], .2);
+
+                var y = d3.scale.linear()
+                    .range([height, 0]);
+
+                var xAxis = d3.svg.axis()
+                    .scale(x)
+                    .orient("bottom");
+
+                var yAxis = d3.svg.axis()
+                    .scale(y)
+                    .orient("left")
+                    .ticks(5)
+                    .tickFormat(function(d) { return d + "%"; });;
+
+                var svg = d3.select("#mobile-kenya").append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                  .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                d3.csv("data/kenya-mobile-use.csv", function(error, data) {
+                  if (error) throw error;
+
+                  // console.log(data);
+
+                  x.domain(data.map(function(d) { return d.Use; }));
+                  y.domain([0, 100]);
+
+                  svg.append("g")
+                      .attr("class", "x axis")
+                      .attr("transform", "translate(0," + height + ")")
+                      .call(xAxis)
+                    .selectAll(".tick text")
+                      .call(wrap, x.rangeBand());
+
+                  svg.append("g")
+                      .attr("class", "y axis")
+                      .call(yAxis);
+
+                  svg.selectAll(".bar-usage")
+                      .data(data)
+                    .enter().append("rect")
+                      .attr("class", "bar-usage")
+                      .attr("x", function(d) { return x(d.Use); })
+                      .attr("width", x.rangeBand())
+                      .attr("y", function(d) { return y(d.Percentage); })
+                      .attr("height", function(d) { return height - y(d.Percentage); })
+                      .style("opacity", function(d) {
+                          if (d.Use === "Send or receive payments") {return "1.0"}
+                          else  { return ".6" }
+                       });
+
+                });
+              }
+
+              draw_bar();
+
+            </script>
+              <p>Source: <a href="http://www.pewglobal.org/2015/04/15/cell-phones-in-africa-communication-lifeline/africa-phones-3/">Pew Research Center</a></p>
+          </div>
+        </div>
+    
+        <div class="col-lg-12">
+          <!-- bar chart -->
+          <div id="map-mobile-banking">
+            <h3>Mobile banking around the world <small>Developing Economies</small></h3>
+
+            <script>
+
+              function draw_map() {
+                
+                //used https://bl.ocks.org/mbostock/4573883 as a reference for how to build the color scheme legend
+                var width = 1140,
+                    height = 400,
+                    formatPercent = d3.format(".0%"),
+                    formatNumber = d3.format(".0f");
+
+                var projection = d3.geo.mercator()
+                  .center([21.09,2.19])
+                  .scale(250)
+                  .translate([width / 2, height / 2]);
+
+                var path = d3.geo.path().projection(projection);
+
+                var map = d3.select("#map-mobile-banking").append("svg")
+                    .attr("class", "map")
+                    .attr("width", width)
+                    .attr("height", height);
+                
+                var countries;
+                var mobileData;
+
+                var threshold = d3.scale.threshold()
+                  .domain([0, 5, 10, 25, 50, 60])
+                  .range(["#ffffff", "#f2f0f7", "#dadaeb", "#9e9ac8", "#807dba", "#6a51a3", "#4a1486"]);
+
+                var x = d3.scale.linear()
+                    .domain([0, 50])
+                    .range([0, 300]);
+
+                var xAxis = d3.svg.axis()
+                    .scale(x)
+                    .orient("bottom")
+                    .tickSize(13)
+                    .tickValues(threshold.domain())
+                    .tickFormat(function(d) { return d === .5 ? formatPercent(d) : formatNumber(d); });
+
+                d3.json("data/countries.json", function(error, shapes) {
+                  if (error) return console.warn(error);
+
+                  countries = topojson.feature(shapes,shapes.objects.countries).features;
+
+                  // console.log(countries);
+
+                  var countryPaths = map.append("g");
+                  countryPaths.selectAll("path").data(countries).enter()
+                    .append("path")
+                    .attr("d", path)
+                    .style("stroke-width", ".5")
+                    .style("stroke", "#ccc");
+
+                  d3.csv("data/mobile-accounts-all-countries.csv", function (error, rows) {
+                    if (error) {console.log(error);}
+                    
+                    // d3 map function -- takes an array and returns a hash
+                    mobileData = d3.map(rows, function (country) { return country.CountryCode; });
+                    
+                    countryPaths.selectAll("path")
+                      .style("fill", function (country) {
+
+                      // country is the geometry
+                      var countryData = mobileData.get(country.id);
+                      // .style("fill", "url(#circles-1)")
+                      if(! countryData) { return "url(#smalldot)";}
+                      return threshold(countryData['2014']);
+
+                    });
+              
+                  });
+
+                  var kenyaCoords = projection([37, 1.2667]);
+                  var callout = map.append("g")
+                    .attr("class", "callout orange");
+
+                  callout.append("line")
+                    .attr("x1", kenyaCoords[0])
+                    .attr("y1", kenyaCoords[1])
+                    .attr("x2", kenyaCoords[0] + 60)
+                    .attr("y2", kenyaCoords[1]);
+
+                  callout.append("rect")
+                    .attr("x", kenyaCoords[0] + 60)
+                    .attr("y", kenyaCoords[1] - 20)
+                    .attr("width", 115)
+                    .attr("height", 30);
+
+                  callout.append("text")
+                    .attr("x", kenyaCoords[0] + 75)
+                    .attr("y", kenyaCoords[1] )
+                    .text("Kenya: 58%");
+
+                  var legend = map.append("g")
+                    .attr("class", "key")
+                    .attr("transform", "translate(" + (width - 380) + "," + (height - 50) + ")");
+
+                  legend.selectAll("rect")
+                    .data(threshold.range().map(function(color) {
+                        var d = threshold.invertExtent(color);
+                        if (d[0] == null) d[0] = x.domain()[0];
+                        if (d[1] == null) d[1] = x.domain()[1];
+                        return d;
+                      }))
+                    .enter().append("rect")
+                      .attr("height", 8)
+                      .attr("x", function(d) { return x(d[0]); })
+                      .attr("width", function(d) { return x(d[1]) - x(d[0]); })
+                      .style("fill", function(d) { return threshold(d[0]); });
+
+                  legend.call(xAxis).append("text")
+                      .attr("class", "caption")
+                      .attr("y", -6)
+                      .text("% of people with mobile banking accounts");
+
+                });
+
+              }
+
+              draw_map();
+
+            </script>
+<p>Source: <a href="http://databank.worldbank.org/">The World Bank</a></p>
+          </div>
+
+          </div>
+        </div>
+
+        <div class="col-lg-12">
+          <!-- bar chart -->
+          <div id="mobile-banking-accounts" class="text-center">
+            
+            <h3>Mobile banking in Africa</h3>
+
+            <script>
+                //used https://bl.ocks.org/mbostock as a reference for the barchart as well as class notes and stack overflow.
+            function draw_barchart() {
+
+                    var margin = {top: 10, right: 20, bottom: 160, left: 40},
+                    width = 900 - margin.left - margin.right,
+                    height = 630 - margin.top - margin.bottom;
+
+                var x = d3.scale.ordinal()
+                    .rangeRoundBands([0, width], .1);
+
+                var y = d3.scale.linear()
+                    .range([height, 0]);
+
+                var xAxis = d3.svg.axis()
+                    .scale(x)
+                    .orient("bottom");
+
+                var yAxis = d3.svg.axis()
+                    .scale(y)
+                    .orient("left")
+                    .ticks(10, "%");
+
+                var color = d3.scale.linear()
+                    //.range(["#de9ed6", "#ce6dbd", "#a55194", "#7b4173"]);
+                   // .range(["#de9ed6", "#7b4173"]);
+                    .range([".15", ".99"]);
+                //var color = d3.scale.category20c();
+
+
+
+
+
+                var svg = d3.select("#mobile-banking-accounts").append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                  .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                d3.csv("data/countries_mobile_accounts.csv", type, function(error, data) {
+                  if (error) throw error;
+
+                  x.domain(data.map(function(d) { return d.country; }));
+                  y.domain([0, d3.max(data, function(d) { return d.value; })]);
+                  color.domain([0, d3.max(data, function(d) { return d.value; })]);
+
+                  svg.append("g")
+                      .attr("class", "x axis")
+                      .attr("transform", "translate(0," + height + ")")
+                      .call(xAxis)
+                    .selectAll("text")
+                  .data(data)
+                        .style("text-anchor", "end")
+                        .attr("dx", "-.8em")
+                        .attr("dy", "-.35em")
+                        .attr("transform","rotate(-90)")
+                        .filter(function(d) { return d.country == "Kenya"; })
+                        .style("font-weight", "bold")
+                        .style("font-size", "14px");
+
+
+                  svg.append("g")
+                      .attr("class", "y axis")
+                      .call(yAxis)
+                    .append("text")
+                      .attr("transform", "rotate(-90)")
+                      .attr("y", 6)
+                      .attr("dy", ".71em")
+                      .style("text-anchor", "end")
+                      .text("Percentage of Population with Mobile Banking Accounts (2014)");
+
+                  svg.selectAll(".bar")
+                      .data(data)
+                    .enter().append("rect")
+                      .attr("class", "bar")
+                      .attr("x", function(d) { return x(d.country); })
+                      .attr("width", x.rangeBand())
+                      .attr("y", function(d) { return y(d.value); })
+                      .attr("height", function(d) { return height - y(d.value); })
+                      .attr("opacity", function(d) { return color(d.value);  
+                                                });
+                    svg.append("g")
+                    .attr("class", " x axis")
+                    //.call(xAxis)
+                    .append("text")
+                    .attr("y", 600)
+                    .attr("x", 270)
+                    .text("African Countries in order of GDP per capita (Low -> High)");
+                
+
+
+                });
+
+
+                function type(d) {
+                  d.value = +d.value;
+                  return d;
+                };
+            };
+
+              draw_barchart();
+
+            </script>
+              <p>Source: <a href="http://databank.worldbank.org/">The World Bank</a></p>
+          </div>
+        </div>  
+
+        <div class="col-lg-6">
+          <div id="timeline-users">
+            <h3>M-PESA users</h3>
+            
+            <script>
+
+              function draw_users() {
+
+                var margin = {top: 30, right: 20, bottom: 50, left: 40},
+                    width = 540 - margin.left - margin.right,
+                    height = 300 - margin.top - margin.bottom;
+
+                var x = d3.time.scale().range([0, width]);
+                var y = d3.scale.linear().range([height, 0]);
+
+                var xAxis = d3.svg.axis().scale(x)
+                    .orient("bottom").ticks(5);
+
+                var yAxis = d3.svg.axis().scale(y)
+                    .orient("left").ticks(5).tickFormat(d3.format("s"));
+
+                var parseMonthYear = d3.time.format("%b-%Y").parse;
+
+                var areaUsers = d3.svg.area()
+                    .interpolate("basis")
+                    .x(function(d) { return x(d.date); })
+                    .y0(height)
+                    .y1(function(d) { return y(d.users); });
+                    
+                var lineUsers = d3.svg.line()
+                    .x(function(d) { return x(d.date); })
+                    .y(function(d) { return y(d.users); })
+                    .interpolate('basis');
+
+                var svg = d3.select("#timeline-users")
+                    .append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                        .attr("transform", 
+                              "translate(" + margin.left + "," + margin.top + ")");
+
+                // Get the data
+                d3.csv("data/m-pesa-users-over-time.csv", function(error, data) {
+                    data.forEach(function(d) {
+                        d.date = parseMonthYear(d.date);
+                        d.users = +d.users;
+
+                        // console.log(d.date);
+                    });
+
+                    // Scale the range of the data
+                    x.domain(d3.extent(data, function(d) { return d.date; }));
+                    y.domain([0, d3.max(data, function(d) { 
+                    return Math.max(d.users); })]);
+
+                    svg.append("path")        // Add the areaDeposits path.
+                        .attr("class", "users-area")
+                        .attr("d", areaUsers(data));
+
+                    svg.append("path")        // Add the lineDeposits path.
+                        .attr("class", "users-line")
+                        .attr("d", lineUsers(data));
+
+                    svg.append("g")            // Add the X Axis
+                      .attr("class", "x axis")
+                      .attr("transform", "translate(0," + height + ")")
+                      .call(xAxis);
+
+                    svg.append("g")
+                      .attr("class", "y axis")
+                      .call(yAxis); 
+
+                });
+
+                //draw line to xaxis 
+
+                svg.append("text")
+                  .attr("transform", "rotate(-90)")
+                  .attr("y", 6)
+                  .attr("dy", ".71em")
+                  .style("text-anchor", "end")
+                  .text("Users");
+
+              }
+
+              draw_users();
+            </script>
+              <p>Source: <a href="http://www.safaricom.co.ke/mpesa_timeline/timeline.html">Safaricom</a></p>
+
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+
+          <h3>&nbsp;<!-- create space --></h3>
+          <p>M-PESA, M for mobile and PESA translating as money in Swahili, is the leading provider of mobile banking in Kenya. Initially funded by the Department for International Development UK (DFID) and launched by Safaricom in 2007, it has seen steady growth ever since. In May 2015, <a href="http://www.techweez.com/2015/05/07/ten-takeaways-safaricom-2015-results/">TechWeez</a> reported that 42% of Kenya's Gross Domestic Product (GDP) is transacted using M-PESA.</p>
+
+          <p>&nbsp;</p>
+          <p>&nbsp;</p>
+
+          <p class="text-right"><a href="project1-report-mobile-kenya.pdf">Project Report</a></p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </body>
+</html>
